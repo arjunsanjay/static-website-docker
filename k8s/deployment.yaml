@@ -14,6 +14,7 @@ spec:
     spec:
       containers:
       - name: static-website
-        image: arjunsanjay/static-website:latest  
+        image: arjunsanjay/static-website:latest
+        imagePullPolicy: Always  
         ports:
         - containerPort: 80
