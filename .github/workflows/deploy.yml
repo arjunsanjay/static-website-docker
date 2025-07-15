@@ -21,10 +21,10 @@ jobs:
       run: docker build -t arjunsanjay/static-website:latest .
 
     # 🚀 Push Docker image to Docker Hub
-    - name: Push Docker image
+    - name: Push Docker image to Docker Hub
       run: docker push arjunsanjay/static-website:latest
 
-    # 🔐 Configure AWS credentials
+    # 🔐 Configure AWS credentials for EKS access
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
@@ -32,18 +32,24 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-south-1
 
-    # 📡 Set up kubeconfig to access EKS
+    # 📡 Set up kubeconfig to access EKS cluster
     - name: Set up kubeconfig
       run: aws eks update-kubeconfig --region ap-south-1 --name EKS1Cluster
 
-    # 🚀 Apply service (if needed)
+    # 📦 Apply Kubernetes service
     - name: Apply Kubernetes Service
       run: kubectl apply -f k8s/service.yaml
 
-    # 🔁 Force rolling update by setting the image
-    - name: Rolling update deployment with latest image
+    # 🔁 Force deployment image update to latest
+    - name: Update image to trigger rollout
       run: kubectl set image deployment/static-website static-website=arjunsanjay/static-website:latest
 
-    # ✅ Verify updated pods
-    - name: Check pod rollout status
+    # 🔁 Force rollout by patching deployment annotations
+    - name: Force rollout with annotation patch
+      run: |
+        kubectl patch deployment static-website -p \
+        "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"date\":\"$(date +%s)\"}}}}}"
+
+    # ✅ Wait for deployment to complete
+    - name: Wait for rollout to finish
       run: kubectl rollout status deployment/static-website
